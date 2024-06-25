@@ -1,78 +1,63 @@
-import javax.imageio.ImageIO;
-import javax.swing.*;
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.File;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Scanner;
 
-public class WeatherApp extends JFrame {
-    public WeatherApp() {
-        super("Weather App");
-
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setSize(450, 650);
-        setLocationRelativeTo(null);
-        setLayout(null);
-        setResizable(false);
-        addGuiComponents();
+public class WeatherApp {
+    public static JSONObject getWeatherData(String locationName){
+        JSONArray locationData = getLocationData(locationName);
+        return null;
     }
 
-    private void addGuiComponents() {
-        JTextField searchTextField = new JTextField();
-        searchTextField.setBounds(15, 15, 351, 45);
-        searchTextField.setFont(new Font("Dialog", Font.PLAIN, 24));
-        add(searchTextField);
+    public static JSONArray getLocationData(String locationName){
+        locationName = locationName.replaceAll(" ", "+");
 
-        JButton searchButton = new JButton(loadImage("src/assets/search.png"));
+        String urlString = "https://geocoding-api.open-meteo.com/v1/search?name=" +
+                locationName + "&count=10&language=en&format=json";
 
-        searchButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        searchButton.setBounds(375, 13, 47, 45);
-        add(searchButton);
-
-        JLabel weatherConditionImage = new JLabel(loadImage("src/assets/cloudy.png"));
-        weatherConditionImage.setBounds(0, 125, 450, 217);
-        add(weatherConditionImage);
-
-        JLabel temperatureText = new JLabel("10 C");
-        temperatureText.setBounds(0, 350, 450, 54);
-        temperatureText.setFont(new Font("Dialog", Font.BOLD, 48));
-        temperatureText.setHorizontalAlignment(SwingConstants.CENTER);
-        add(temperatureText);
-
-        JLabel weatherConditionDesc = new JLabel("Cloudy");
-        weatherConditionDesc.setBounds(0,405,450,36);
-        weatherConditionDesc.setFont(new Font("Dialog",Font.PLAIN,32));
-        weatherConditionDesc.setHorizontalAlignment(SwingConstants.CENTER);
-        add(weatherConditionDesc);
-
-        JLabel humidityImage = new JLabel(loadImage("src/assets/humidity.png"));
-        humidityImage.setBounds(15,500,74,66);
-        add(humidityImage);
-
-        JLabel humidityText = new JLabel("<html><b>Humidity</b> 100%</html>");
-        humidityText.setBounds(90,500,85,55);
-        humidityText.setFont(new Font("Dialog",Font.PLAIN,16));
-        add(humidityText);
-
-        JLabel windSpeedImage = new JLabel(loadImage("src/assets/windspeed.png"));
-        windSpeedImage.setBounds(220,500,74,66);
-        add(windSpeedImage);
-
-        JLabel windSpeedText = new JLabel("<html><b>Windspeed</b> 15km/h</html>");
-        windSpeedText.setBounds(310,500,85,55);
-        windSpeedText.setFont(new Font("Dialog",Font.PLAIN,15));
-        add(windSpeedText);
-
-    }
-
-    private ImageIcon loadImage(String resoursePath) {
         try {
-            BufferedImage image = ImageIO.read(new File(resoursePath));
-            return new ImageIcon(image);
+            HttpURLConnection conn = fetchApiResponse(urlString);
+
+            if (conn == null || conn.getResponseCode() != 200){
+                System.out.println("Не читает вашу API. Response code: " + (conn != null ? conn.getResponseCode() : "null connection"));
+                return null;
+            } else {
+                StringBuilder resJson = new StringBuilder();
+                Scanner scanner = new Scanner(conn.getInputStream());
+
+                while(scanner.hasNext()){
+                    resJson.append(scanner.nextLine());
+                }
+
+                scanner.close();
+                conn.disconnect();
+                JSONParser parser = new JSONParser();
+                JSONObject resJsonObj = (JSONObject) parser.parse(String.valueOf(resJson));
+
+                JSONArray locationData = (JSONArray) resJsonObj.get("results");
+                return locationData;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private static HttpURLConnection fetchApiResponse(String urlString){
+        try {
+            URL url = new URL(urlString);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.connect();
+            return conn;
         } catch (IOException e) {
             e.printStackTrace();
         }
-        System.out.println("Ничего не найдено");
         return null;
     }
+
 }

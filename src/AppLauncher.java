@@ -1,12 +1,12 @@
 import javax.swing.*;
 
-public class App {
+public class AppLauncher {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                new WeatherApp().setVisible(true);
-                System.out.println(WeatherFeatures.getLocationData("Tokyo"));
+//                new WeatherAppGui().setVisible(true);
+                System.out.println(WeatherApp.getLocationData("Tokyo"));
             }
         });
     }
